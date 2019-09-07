@@ -10,7 +10,12 @@ main :: IO ()
 -- main = mapM_ putStrLn $ P.print $ F.right $ S.scan original
 -- main = mapM_ putStrLn $ P.print $ F.left $ S.scan original
 -- main = mapM_ putStrLn $ P.print $ F.up $ S.scan original
-main = mapM_ putStrLn $ P.print $ F.down $ S.scan original
+-- main = mapM_ putStrLn $ P.print $ F.down $ S.scan original
+
+-- main = mapM_ putStrLn $ P.print $ F.rightN 2 $ S.scan original
+-- main = mapM_ putStrLn $ P.print $ F.leftN 2 $ S.scan original
+-- main = mapM_ putStrLn $ P.print $ F.upN 2 $ S.scan original
+main = mapM_ putStrLn $ P.print $ F.downN 2 $ S.scan original
 
 original =
     [ "0000000000000000"
