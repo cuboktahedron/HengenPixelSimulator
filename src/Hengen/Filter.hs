@@ -19,25 +19,25 @@ identity :: Canvas -> Canvas
 identity ns = ns
 
 right :: Canvas -> Canvas
-right cv = rightN 1 cv
+right = rightN 1
 
 rightN :: Int -> Canvas -> Canvas
-rightN n cv = map (\row -> row `shiftR` n) cv
+rightN n = map (\row -> row `shiftR` n)
 
 left :: Canvas -> Canvas
-left cv = leftN 1 cv
+left = leftN 1
 
 leftN :: Int -> Canvas -> Canvas
-leftN n cv = map (\row -> row `shiftL` n) cv
+leftN n = map (\row -> row `shiftL` n)
 
 up :: Canvas -> Canvas
-up cv = upN 1 cv
+up = upN 1
 
 upN :: Int -> Canvas -> Canvas
 upN n cv = drop n cv ++ replicate n 0
 
 down :: Canvas -> Canvas
-down cv = downN 1 cv
+down = downN 1
 
 downN :: Int -> Canvas -> Canvas
 downN n cv = replicate n 0 ++ take (16 - n) cv
