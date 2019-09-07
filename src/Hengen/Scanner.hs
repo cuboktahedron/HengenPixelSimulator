@@ -4,16 +4,15 @@ module Hengen.Scanner
 where
 
 import           Data.Bits
+import           Hengen.Types
 
-scan :: [String] -> [Int]
+scan :: [String] -> Canvas
 scan css = map scanLine css
 
-scanLine :: String -> Int
+scanLine :: String -> CanvasRow
 scanLine cs = sum $ map scanBit [0 .. 15]
   where
     scanBit n =
         let bit = [cs !! n]
             v   = read bit
         in  v `shiftL` (15 - n)
-
-
