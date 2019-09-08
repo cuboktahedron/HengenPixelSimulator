@@ -19,8 +19,9 @@ main :: IO ()
 
 -- main = mapM_ putStrLn $ P.print $ F.complement $ S.scan original
 -- main = mapM_ putStrLn $ P.print $ F.swap $ S.scan original
-main = mapM_ putStrLn $ P.print $ F.reverse $ S.scan original
-
+-- main = mapM_ putStrLn $ P.print $ F.reverse $ S.scan original
+-- main = mapM_ putStrLn $ P.print $ F.and [S.scan original, S.scan checker]
+main = mapM_ putStrLn $ P.print $ F.or [S.scan original, S.scan checker]
 
 original =
     [ "0000000000000000"
@@ -39,4 +40,23 @@ original =
     , "0011100000000000"
     , "0000000000000000"
     , "0000000000000000"
+    ]
+
+checker =
+    [ "0101010101010101"
+    , "1010101010101010"
+    , "0101010101010101"
+    , "1010101010101010"
+    , "0101010101010101"
+    , "1010101010101010"
+    , "0101010101010101"
+    , "1010101010101010"
+    , "0101010101010101"
+    , "1010101010101010"
+    , "0101010101010101"
+    , "1010101010101010"
+    , "0101010101010101"
+    , "1010101010101010"
+    , "0101010101010101"
+    , "1010101010101010"
     ]
