@@ -7,10 +7,10 @@ import           Data.Bits
 import           Hengen.Types
 
 scan :: [String] -> Canvas
-scan css = map scanLine css
+scan css = map scanRow css
 
-scanLine :: String -> CanvasRow
-scanLine cs = sum $ map scanBit [0 .. 15]
+scanRow :: String -> CanvasRow
+scanRow cs = sum $ map scanBit [0 .. 15]
   where
     scanBit n =
         let bit = [cs !! n]
