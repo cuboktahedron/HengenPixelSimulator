@@ -60,13 +60,13 @@ reverse = map reverseRow
         in  r4
 
 and :: [Canvas] -> Canvas
-and (cv : rest) = foldl (\acc cv -> acc `and'` cv) cv rest
+and (cv : rest) = foldl and' cv rest
   where
     and' cv1 cv2 = map andRow $ zip cv1 cv2
     andRow (row1, row2) = row1 .&. row2
 
 or :: [Canvas] -> Canvas
-or (cv : rest) = foldl (\acc cv -> acc `or'` cv) cv rest
+or (cv : rest) = foldl or' cv rest
   where
     or' cv1 cv2 = map orRow $ zip cv1 cv2
     orRow (row1, row2) = row1 .|. row2
