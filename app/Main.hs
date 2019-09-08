@@ -18,7 +18,8 @@ main :: IO ()
 -- main = mapM_ putStrLn $ P.print $ F.downN 2 $ S.scan original
 
 -- main = mapM_ putStrLn $ P.print $ F.complement $ S.scan original
-main = mapM_ putStrLn $ P.print $ F.swap $ S.scan original
+-- main = mapM_ putStrLn $ P.print $ F.swap $ S.scan original
+main = mapM_ putStrLn $ P.print $ F.reverse $ S.scan original
 
 
 original =

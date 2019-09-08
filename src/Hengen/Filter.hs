@@ -1,3 +1,5 @@
+{-# LANGUAGE BinaryLiterals #-}
+
 module Hengen.Filter where
 
 import           Data.Bits
@@ -41,3 +43,18 @@ swap = map swapRow
         let lToR = row `shiftR` 8
             rToL = row `shiftL` 8
         in lToR .|. rToL
+
+reverse :: Canvas -> Canvas
+reverse = map reverseRow
+  where
+    reverseRow row =
+        let m1 = 0b0101010101010101
+            m2 = 0b0011001100110011
+            m3 = 0b0000111100001111
+            m4 = 0b0000000011111111
+            r0 = row
+            r1 = ((r0 .&. m1) `shiftL` 1) .|. ((r0 `shiftR` 1) .&. m1)
+            r2 = ((r1 .&. m2) `shiftL` 2) .|. ((r1 `shiftR` 2) .&. m2)
+            r3 = ((r2 .&. m3) `shiftL` 4) .|. ((r2 `shiftR` 4) .&. m3)
+            r4 = ((r3 .&. m4) `shiftL` 8) .|. ((r3 `shiftR` 8) .&. m4)
+        in r4
