@@ -15,23 +15,27 @@ main :: IO ()
 -- main = mapM_ putStrLn $ P.print $ F.rightN 2 $ S.scan original
 -- main = mapM_ putStrLn $ P.print $ F.leftN 2 $ S.scan original
 -- main = mapM_ putStrLn $ P.print $ F.upN 2 $ S.scan original
-main = mapM_ putStrLn $ P.print $ F.downN 2 $ S.scan original
+-- main = mapM_ putStrLn $ P.print $ F.downN 2 $ S.scan original
+
+-- main = mapM_ putStrLn $ P.print $ F.complement $ S.scan original
+main = mapM_ putStrLn $ P.print $ F.swap $ S.scan original
+
 
 original =
     [ "0000000000000000"
     , "0000000000000000"
-    , "0001111111111100"
-    , "0001111111111100"
-    , "0001111111111100"
-    , "0001110000000000"
-    , "0001110000000000"
-    , "0001111111100000"
-    , "0001111111100000"
-    , "0001111111100000"
-    , "0001110000000000"
-    , "0001110000000000"
-    , "0001110000000000"
-    , "0001110000000000"
+    , "0011111111111100"
+    , "0011111111111100"
+    , "0011111111111100"
+    , "0011100000000000"
+    , "0011100000000000"
+    , "0011111111100000"
+    , "0011111111100000"
+    , "0011111111100000"
+    , "0011100000000000"
+    , "0011100000000000"
+    , "0011100000000000"
+    , "0011100000000000"
     , "0000000000000000"
     , "0000000000000000"
     ]

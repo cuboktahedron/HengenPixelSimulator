@@ -1,15 +1,4 @@
-module Hengen.Filter
-    ( identity
-    , left
-    , leftN
-    , right
-    , rightN
-    , up
-    , upN
-    , down
-    , downN
-    )
-where
+module Hengen.Filter where
 
 import           Data.Bits
 import           Hengen.Types
@@ -41,3 +30,14 @@ down = downN 1
 
 downN :: Int -> Canvas -> Canvas
 downN n cv = replicate n 0 ++ take (16 - n) cv
+
+complement :: Canvas -> Canvas
+complement = map (\row -> row `xor` 0xffff)
+
+swap :: Canvas -> Canvas
+swap = map swapRow
+  where
+    swapRow row =
+        let lToR = row `shiftR` 8
+            rToL = row `shiftL` 8
+        in lToR .|. rToL
