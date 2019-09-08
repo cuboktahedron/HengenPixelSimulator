@@ -1,9 +1,9 @@
 module Main where
 
-import qualified Hengen.Filter as F
-import qualified Hengen.Printer as P
-import qualified Hengen.Scanner as S
-import Hengen.Types
+import qualified Hengen.Filter                 as F
+import qualified Hengen.Printer                as P
+import qualified Hengen.Scanner                as S
+import           Hengen.Types
 
 main :: IO ()
 -- main = mapM_ putStrLn $ P.print $ F.identity $ S.scan original
@@ -21,7 +21,9 @@ main :: IO ()
 -- main = mapM_ putStrLn $ P.print $ F.swap $ S.scan original
 -- main = mapM_ putStrLn $ P.print $ F.reverse $ S.scan original
 -- main = mapM_ putStrLn $ P.print $ F.and [S.scan original, S.scan checker]
-main = mapM_ putStrLn $ P.print $ F.or [S.scan original, S.scan checker]
+-- main = mapM_ putStrLn $ P.print $ F.or [S.scan original, S.scan checker]
+
+main = mapM_ putStrLn $ P.print $ F.border $ S.scan original
 
 original =
     [ "0000000000000000"
