@@ -1,5 +1,6 @@
 module Main where
 
+import           Control.Monad.State.Lazy
 import qualified Hengen.Filter as F
 import qualified Hengen.Printer as P
 import qualified Hengen.Scanner as S
@@ -23,10 +24,13 @@ main :: IO ()
 -- main = mapM_ putStrLn $ P.print $ F.and [S.scan original, S.scan checker]
 -- main = mapM_ putStrLn $ P.print $ F.or [S.scan original, S.scan checker]
 -- main = mapM_ putStrLn $ P.print $ F.border $ S.scan original
+
 main = L.parsecMain "\
-    \SEND (1 + 3);\n\
-    \SEND (5 - 3);\n\
-    \SEND ~3"
+    \ x1 <- (1 + 3)\n\
+    \;x2 <- (5 - 3) + (2 + 4)\n\
+    \;SEND x1 + x2"
+
+-- main = print $ runState L.parsecMain []
 
 original =
   [ "0000000000000000"

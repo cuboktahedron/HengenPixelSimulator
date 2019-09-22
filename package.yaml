@@ -13,6 +13,7 @@ tests:
 copyright: 2019 cuboktahedron
 maintainer: cuboktahedron@gmail.com
 dependencies:
+- mtl
 - parsec
 - base >= 4.7 && < 5
 name: HengenPixel

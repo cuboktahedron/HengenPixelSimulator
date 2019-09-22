@@ -1,27 +1,30 @@
 module Hengen.Lang.Mg where
 
 import           Control.Applicative ((<*))
+import           Control.Monad.State
 import           Data.Bits
 import           Data.Foldable (sequenceA_)
-import           Text.Parsec
+import           Text.Parsec hiding (State)
 import           Text.ParserCombinators.Parsec.Char
 import           Text.Parsec.String
 import           Text.Parsec.Expr
 import           Text.Parsec.Token
+import           Data.List
 import           Text.Parsec.Language
 
--- expr    ::= ( expr ) | const | unop expr | expr duop expr
+-- expr    ::= var | ( expr ) | const | unop expr | expr duop expr
+-- var     ::= letter { letter | digit }*
 -- const   ::= { digit }+
 -- unop    ::= ~
 -- duop    ::= + | - 
--- stmt    ::= out | stmt { \n stmt }+
+-- stmt    ::= var <- expr | out | stmt { \n stmt }+
 -- out     ::= SEND expr
-
-data Expr = Const Integer
+data Expr = Var String
+          | Const Integer
           | Uno Unop Expr
           | Duo Duop Expr Expr
   deriving Show
-  
+
 data Unop = Not
           | Complement
   deriving Show
@@ -30,20 +33,18 @@ data Duop = Add
           | Minus
   deriving Show
 
-data Stmt = Out Expr
+data Stmt = String := Expr
+          | Out Expr
           | Seq [Stmt]
   deriving Show
 
 def :: LanguageDef st
 def = emptyDef { identStart = letter
                , identLetter = alphaNum
-               , opStart = oneOf "+-"
-               , opLetter = oneOf "+-"
-               , reservedOpNames = ["+", "-"]
-               , reservedNames =
-                   [ "RECEIVE"
-                   , "SEND"
-                   ]
+               , opStart = oneOf "<+-"
+               , opLetter = oneOf "<+-"
+               , reservedOpNames = ["+", "-", "<-"]
+               , reservedNames = ["RECEIVE", "SEND"]
                }
 
 TokenParser { parens = m_parens
@@ -63,7 +64,8 @@ table = [ [Prefix (m_reservedOp "~" >> return (Uno Complement))]
         , [Infix (m_reservedOp "-" >> return (Duo Minus)) AssocLeft]]
 
 term = m_parens exprparser
-   <|> do
+  <|> fmap Var m_identifier
+  <|> do
     i <- m_integer
     return (Const i)
 
@@ -74,25 +76,62 @@ mainparser = m_whiteSpace >> stmtparser <* eof
     stmtparser = fmap Seq (m_semiSep1 stmt1)
 
     stmt1 = do
-      m_reserved "SEND"
+      v <- m_identifier
+      m_reservedOp "<-"
       expr <- exprparser
-      return (Out expr)
+      return (v := expr)
+      <|> do
+        m_reserved "SEND"
+        expr <- exprparser
+        return (Out expr)
 
 play :: String -> IO ()
 play inp = case parse mainparser "" inp of
   Left err  -> print err
-  Right ans -> apply ans
+  Right ans -> runStateT (apply ans) [] >> return ()
 
-apply :: Stmt -> IO ()
-apply (Out expr)  = print $ applyExpr expr
-apply (Seq stmts) = sequenceA_ $ map apply stmts
+apply :: Stmt -> StateT Env IO Integer
+apply (name := expr) = do
+  value <- applyExpr expr
+  defineVar (name, value)
+apply (Out expr) = do
+  value <- applyExpr expr
+  lift $ print value
+  return value
+apply (Seq stmts) = do
+  sequenceA $ map apply stmts
+  return 0
 
-applyExpr :: Expr -> Integer
-applyExpr (Const i) = i
+applyExpr :: Expr -> StateT Env IO Integer
+applyExpr (Const i) = return i
+applyExpr (Var name) = getVar name
 applyExpr (Uno unop expr) = case unop of
-  Complement -> complement $ applyExpr expr
+  Complement -> do
+    value <- applyExpr expr
+    return $ complement value
 applyExpr (Duo duop expr1 expr2) = case duop of
-  Add   -> applyExpr expr1 + applyExpr expr2
-  Minus -> applyExpr expr1 - applyExpr expr2
+  Add   -> do
+    value1 <- applyExpr expr1
+    value2 <- applyExpr expr2
+    return $ value1 + value2
+  Minus -> do
+    value1 <- applyExpr expr1
+    value2 <- applyExpr expr2
+    return $ value1 - value2
 
 parsecMain = play
+
+type Env = [(String, Integer)]
+
+initialEnv :: StateT Env IO Integer
+initialEnv = state (\ss -> (0, ss))
+
+defineVar :: (String, Integer) -> StateT Env IO Integer
+defineVar (name, value) = state $ \ss -> (0, (name, value):ss)
+
+getVar :: String -> StateT Env IO Integer
+getVar name = state
+  $ \ss -> let value = lookup name ss
+           in case value of
+                Just x    -> (x, ss)
+                otherwise -> (0, ss)
