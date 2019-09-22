@@ -1,48 +1,36 @@
-name:                HengenPixel
-version:             0.1.0.0
-github:              "cuboktahedron/HengenPixel"
-license:             BSD3
-author:              "cuboktahedron"
-maintainer:          "cuboktahedron@gmail.com"
-copyright:           "2019 cuboktahedron"
-
+library:
+  source-dirs: src
+tests:
+  HengenPixel-test:
+    source-dirs: test
+    main: Spec.hs
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - HengenPixel
+copyright: 2019 cuboktahedron
+maintainer: cuboktahedron@gmail.com
+dependencies:
+- parsec
+- base >= 4.7 && < 5
+name: HengenPixel
+version: 0.1.0.0
 extra-source-files:
 - README.md
 - ChangeLog.md
-
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
-
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/cuboktahedron/HengenPixel#readme>
-
-dependencies:
-- base >= 4.7 && < 5
-
-library:
-  source-dirs: src
-
+author: cuboktahedron
+github: cuboktahedron/HengenPixel
+license: BSD3
 executables:
   HengenPixel-exe:
-    main:                Main.hs
-    source-dirs:         app
+    source-dirs: app
+    main: Main.hs
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - HengenPixel
-
-tests:
-  HengenPixel-test:
-    main:                Spec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - HengenPixel
+description: Please see the README on GitHub at <https://github.com/cuboktahedron/HengenPixel#readme>
