@@ -28,7 +28,15 @@ main :: IO ()
 main = L.parsecMain "\
     \ x1 <- (1 + 3)\n\
     \;x2 <- (5 - 3) + (2 + 4)\n\
-    \;SEND x1 + x2"
+    \;SEND x1 + x2\n\
+    \;i <- 10\n\
+    \;sum <- 0\n\
+    \;while i do\n\
+    \   sum <- (sum + i)\n\
+    \   ;i <- i - 1\n\
+    \ end-while\n\
+    \;SEND sum"
+
 
 -- main = print $ runState L.parsecMain []
 

@@ -17,7 +17,7 @@ import           Text.Parsec.Language
 -- const   ::= { digit }+
 -- unop    ::= ~
 -- duop    ::= + | - 
--- stmt    ::= var <- expr | out | stmt { \n stmt }+
+-- stmt    ::= var <- expr | out | while expr do stmt end-while | stmt { \n stmt }+
 -- out     ::= SEND expr
 data Expr = Var String
           | Const Integer
@@ -35,17 +35,19 @@ data Duop = Add
 
 data Stmt = String := Expr
           | Out Expr
+          | While Expr Stmt
           | Seq [Stmt]
   deriving Show
 
 def :: LanguageDef st
-def = emptyDef { identStart = letter
-               , identLetter = alphaNum
-               , opStart = oneOf "<+-"
-               , opLetter = oneOf "<+-"
-               , reservedOpNames = ["+", "-", "<-"]
-               , reservedNames = ["RECEIVE", "SEND"]
-               }
+def =
+  emptyDef { identStart = letter
+           , identLetter = alphaNum
+           , opStart = oneOf "<+-"
+           , opLetter = oneOf "<+-"
+           , reservedOpNames = ["+", "-", "<-"]
+           , reservedNames = ["RECEIVE", "SEND", "while", "do", "end-while"]
+           }
 
 TokenParser { parens = m_parens
             , integer = m_integer
@@ -84,6 +86,13 @@ mainparser = m_whiteSpace >> stmtparser <* eof
         m_reserved "SEND"
         expr <- exprparser
         return (Out expr)
+      <|> do
+        m_reserved "while"
+        expr <- exprparser
+        m_reserved "do"
+        stmt <- stmtparser
+        m_reserved "end-while"
+        return (While expr stmt)
 
 play :: String -> IO ()
 play inp = case parse mainparser "" inp of
@@ -98,6 +107,13 @@ apply (Out expr) = do
   value <- applyExpr expr
   lift $ print value
   return value
+apply (While expr stmt) = do
+  value <- applyExpr expr
+  if value > 0
+    then do 
+      apply stmt
+      apply (While expr stmt)
+    else return 0
 apply (Seq stmts) = do
   sequenceA $ map apply stmts
   return 0
