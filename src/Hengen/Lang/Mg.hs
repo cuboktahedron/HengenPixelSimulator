@@ -19,6 +19,8 @@ import           Text.Parsec.Language
 -- duop    ::= + | - 
 -- stmt    ::= var <- expr | out | while expr do stmt end-while | stmt { \n stmt }+
 -- out     ::= SEND expr
+-- pname   ::= letter { letter | digit }*
+-- program ::= program pname stmt end-program
 data Expr = Var String
           | Const Integer
           | Uno Unop Expr
@@ -39,15 +41,23 @@ data Stmt = String := Expr
           | Seq [Stmt]
   deriving Show
 
+data Program = Program String Stmt
+  deriving Show
+
 def :: LanguageDef st
-def =
-  emptyDef { identStart = letter
-           , identLetter = alphaNum
-           , opStart = oneOf "<+-"
-           , opLetter = oneOf "<+-"
-           , reservedOpNames = ["+", "-", "<-"]
-           , reservedNames = ["RECEIVE", "SEND", "while", "do", "end-while"]
-           }
+def = emptyDef { identStart = letter
+               , identLetter = alphaNum
+               , opStart = oneOf "<+-"
+               , opLetter = oneOf "<+-"
+               , reservedOpNames = ["+", "-", "<-"]
+               , reservedNames = [ "RECEIVE"
+                                 , "SEND"
+                                 , "while"
+                                 , "do"
+                                 , "end-while"
+                                 , "program"
+                                 , "end-program"]
+               }
 
 TokenParser { parens = m_parens
             , integer = m_integer
@@ -71,12 +81,19 @@ term = m_parens exprparser
     i <- m_integer
     return (Const i)
 
-mainparser :: Parser Stmt
-mainparser = m_whiteSpace >> stmtparser <* eof
-  where
-    stmtparser :: Parser Stmt
-    stmtparser = fmap Seq (m_semiSep1 stmt1)
+programparser :: Parser Program
+programparser = do
+  m_whiteSpace
+  m_reserved "program"
+  pname <- m_identifier
+  stmt <- stmtparser
+  m_reserved "end-program"
+  eof
+  return (Program pname stmt)
 
+stmtparser :: Parser Stmt
+stmtparser = fmap Seq (m_semiSep1 stmt1)
+  where
     stmt1 = do
       v <- m_identifier
       m_reservedOp "<-"
@@ -95,27 +112,30 @@ mainparser = m_whiteSpace >> stmtparser <* eof
         return (While expr stmt)
 
 play :: String -> IO ()
-play inp = case parse mainparser "" inp of
+play inp = case parse programparser "" inp of
   Left err  -> print err
   Right ans -> runStateT (apply ans) [] >> return ()
 
-apply :: Stmt -> StateT Env IO Integer
-apply (name := expr) = do
+apply :: Program -> StateT Env IO Integer
+apply (Program pname stmt) = applyStmt stmt
+
+applyStmt :: Stmt -> StateT Env IO Integer
+applyStmt (name := expr) = do
   value <- applyExpr expr
   defineVar (name, value)
-apply (Out expr) = do
+applyStmt (Out expr) = do
   value <- applyExpr expr
   lift $ print value
   return value
-apply (While expr stmt) = do
+applyStmt (While expr stmt) = do
   value <- applyExpr expr
   if value > 0
-    then do 
-      apply stmt
-      apply (While expr stmt)
+    then do
+      applyStmt stmt
+      applyStmt (While expr stmt)
     else return 0
-apply (Seq stmts) = do
-  sequenceA $ map apply stmts
+applyStmt (Seq stmts) = do
+  sequenceA $ map applyStmt stmts
   return 0
 
 applyExpr :: Expr -> StateT Env IO Integer

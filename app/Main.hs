@@ -26,16 +26,18 @@ main :: IO ()
 -- main = mapM_ putStrLn $ P.print $ F.border $ S.scan original
 
 main = L.parsecMain "\
-    \ x1 <- (1 + 3)\n\
-    \;x2 <- (5 - 3) + (2 + 4)\n\
-    \;SEND x1 + x2\n\
-    \;i <- 10\n\
-    \;sum <- 0\n\
-    \;while i do\n\
-    \   sum <- (sum + i)\n\
-    \   ;i <- i - 1\n\
-    \ end-while\n\
-    \;SEND sum"
+    \program Program1\n\
+    \   x1 <- (1 + 3)\n\
+    \  ;x2 <- (5 - 3) + (2 + 4)\n\
+    \  ;SEND x1 + x2\n\
+    \  ;i <- 10\n\
+    \  ;sum <- 0\n\
+    \  ;while i do\n\
+    \     sum <- (sum + i)\n\
+    \     ;i <- i - 1\n\
+    \   end-while\n\
+    \  ;SEND sum\n\
+    \end-program"
 
 
 -- main = print $ runState L.parsecMain []
