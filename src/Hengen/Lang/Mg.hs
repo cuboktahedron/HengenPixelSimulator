@@ -1,6 +1,7 @@
 module Hengen.Lang.Mg where
 
 import           Control.Applicative ((<*))
+import           Control.Monad.Identity
 import           Control.Monad.State
 import           Data.Bits
 import           Data.Foldable (sequenceA_)
@@ -11,14 +12,16 @@ import           Text.Parsec.Expr
 import           Text.Parsec.Token
 import           Data.List
 import           Text.Parsec.Language
+import           Hengen.Types
 
 -- expr    ::= var | ( expr ) | const | unop expr | expr duop expr
 -- var     ::= letter { letter | digit }*
 -- const   ::= { digit }+
 -- unop    ::= ~
 -- duop    ::= + | - 
--- stmt    ::= var <- expr | out | while expr do stmt end-while | stmt { \n stmt }+
+-- stmt    ::= var <- expr | var <- in | out | while expr do stmt end-while | stmt { \n stmt }+
 -- out     ::= SEND expr
+-- in      ::= RECEIVE [ { digit }+ ]
 -- pname   ::= letter { letter | digit }*
 -- program ::= program pname stmt end-program
 data Expr = Var String
@@ -36,9 +39,11 @@ data Duop = Add
   deriving Show
 
 data Stmt = String := Expr
+          | In String Int
           | Out Expr
           | While Expr Stmt
           | Seq [Stmt]
+          | Nop
   deriving Show
 
 data Program = Program String Stmt
@@ -65,6 +70,7 @@ TokenParser { parens = m_parens
             , reservedOp = m_reservedOp
             , reserved = m_reserved
             , semiSep1 = m_semiSep1
+            , brackets  = m_brackets
             , whiteSpace = m_whiteSpace
             } = makeTokenParser def
 
@@ -94,51 +100,77 @@ programparser = do
 stmtparser :: Parser Stmt
 stmtparser = fmap Seq (m_semiSep1 stmt1)
   where
-    stmt1 = do
-      v <- m_identifier
-      m_reservedOp "<-"
-      expr <- exprparser
-      return (v := expr)
-      <|> do
-        m_reserved "SEND"
-        expr <- exprparser
-        return (Out expr)
-      <|> do
-        m_reserved "while"
-        expr <- exprparser
-        m_reserved "do"
-        stmt <- stmtparser
-        m_reserved "end-while"
-        return (While expr stmt)
+    stmt1 = try
+      (do
+         v <- m_identifier
+         m_reservedOp "<-"
+         expr <- exprparser
+         return (v := expr))
+      <|> try
+        (do
+           v <- m_identifier
+           m_reservedOp "<-"
+           m_reserved "RECEIVE"
+           ix <- m_brackets m_integer
+           return (In v (fromInteger ix)))
+      <|> try
+        (do
+           m_reserved "SEND"
+           expr <- exprparser
+           return (Out expr))
+      <|> try
+        (do
+           m_reserved "while"
+           expr <- exprparser
+           m_reserved "do"
+           stmt <- stmtparser
+           m_reserved "end-while"
+           return (While expr stmt))
+      <|> return Nop
 
-play :: String -> IO ()
-play inp = case parse programparser "" inp of
-  Left err  -> print err
-  Right ans -> runStateT (apply ans) [] >> return ()
+execProgram :: Program -> [Canvas] -> Canvas
+execProgram prog is = outputs $ runIdentity $ execStateT ss emptyEnv
+  where
+    ss = initialEnvState is >> apply prog
 
-apply :: Program -> StateT Env IO Integer
+apply :: Program -> StateT Env Identity ()
 apply (Program pname stmt) = applyStmt stmt
 
-applyStmt :: Stmt -> StateT Env IO Integer
+applyStmt :: Stmt -> StateT Env Identity ()
 applyStmt (name := expr) = do
   value <- applyExpr expr
   defineVar (name, value)
+applyStmt (In name ix) = do
+  value <- applyIn ix
+  defineVar (name, value)
 applyStmt (Out expr) = do
   value <- applyExpr expr
-  lift $ print value
-  return value
+  send value
+  --  lift $ print value
+  return ()
 applyStmt (While expr stmt) = do
   value <- applyExpr expr
   if value > 0
     then do
       applyStmt stmt
       applyStmt (While expr stmt)
-    else return 0
+    else return ()
+applyStmt Nop = return ()
 applyStmt (Seq stmts) = do
   sequenceA $ map applyStmt stmts
-  return 0
+  return ()
 
-applyExpr :: Expr -> StateT Env IO Integer
+applyIn :: Int -> StateT Env Identity Integer
+applyIn ix = state
+  $ \ss -> let is = inputs ss
+              -- TODO: boundary check
+               (row:rows) = is !! ix
+               next = ss {
+                 inputs = take ix is ++ [rows] ++ drop (ix + 1) is
+               }
+            in (row, next)
+  
+applyExpr :: Expr -> StateT Env Identity Integer
 applyExpr (Const i) = return i
 applyExpr (Var name) = getVar name
 applyExpr (Uno unop expr) = case unop of
@@ -155,22 +187,41 @@ applyExpr (Duo duop expr1 expr2) = case duop of
     value2 <- applyExpr expr2
     return $ value1 - value2
 
-parseFilter :: String -> Either String Program
-parseFilter inp = case parse programparser "" inp of
+parseProgram :: String -> Either String Program
+parseProgram inp = case parse programparser "" inp of
   Left err  -> Left $ show err
   Right ans -> Right ans
 
-type Env = [(String, Integer)]
+data Env = Env { variables :: [(String, Integer)]
+               , inputs :: [Canvas]
+               , outputs :: [CanvasRow]
+               }
 
-initialEnv :: StateT Env IO Integer
-initialEnv = state (\ss -> (0, ss))
+emptyEnv = Env { variables = [], inputs = [], outputs = [] }
 
-defineVar :: (String, Integer) -> StateT Env IO Integer
-defineVar (name, value) = state $ \ss -> (0, (name, value):ss)
+initialEnv :: [Canvas] -> Env
+initialEnv is = emptyEnv { inputs = is }
 
-getVar :: String -> StateT Env IO Integer
+initialEnvState :: [Canvas] -> StateT Env Identity ()
+initialEnvState is = state $ \ss -> ((), initialEnv is)
+
+defineVar :: (String, Integer) -> StateT Env Identity ()
+defineVar (name, value) = state
+  $ \ss -> let vars = variables ss
+               -- TODO: determine multiple definition
+               next = ss { variables = (name, value):vars }
+           in ((), next)
+
+getVar :: String -> StateT Env Identity Integer
 getVar name = state
-  $ \ss -> let value = lookup name ss
+  $ \ss -> let vars = variables ss
+               value = lookup name vars
            in case value of
                 Just x    -> (x, ss)
                 otherwise -> (0, ss)
+
+send :: CanvasRow -> StateT Env Identity ()
+send row = state
+  $ \ss -> let os = outputs ss
+               next = ss { outputs = os ++ [row] }
+           in ((), next)

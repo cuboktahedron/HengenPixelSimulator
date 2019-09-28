@@ -5,15 +5,15 @@ import qualified Hengen.Printer as P
 import qualified Hengen.Scanner as S
 import           Hengen.Types
 
-data HGScanner = HGScanner [String]
+data HGScanner = HGScanner [String] deriving Show
 
-data HGFilter = HGFilter L.Program [HGNode]
+data HGFilter = HGFilter L.Program [HGNode] deriving Show
 
-data HGPrinter = HGPrinter HGNode
+data HGPrinter = HGPrinter HGNode deriving Show
 
 data HGNode = HGNFilter HGFilter
             | HGNScanner HGScanner
-            | HGNEmpty
+            | HGNEmpty deriving Show
 
 test1 :: IO ()
 test1 = printHG $ HGPrinter $ HGNScanner $ createScanner ""
@@ -29,7 +29,8 @@ printHG (HGPrinter node) = mapM_ putStrLn $ P.print $ through node
 
 through :: HGNode -> Canvas
 through HGNEmpty = []
-through (HGNFilter (HGFilter prog nodes)) = evaluate prog (map through nodes)
+through (HGNFilter (HGFilter prog nodes)) =
+  L.execProgram prog (map through nodes)
 through (HGNScanner (HGScanner scanner)) = S.scan $ scanner
 
 canvasF =
@@ -55,23 +56,15 @@ createScanner _ = HGScanner canvasF
 
 loadFilter :: FilePath -> L.Program
 loadFilter path =
-  let prog = L.parseFilter
-        "\
+  let prog = L.parseProgram "\
       \program Program1\n\
-      \   x1 <- (1 + 3)\n\
-      \  ;x2 <- (5 - 3) + (2 + 4)\n\
-      \  ;SEND x1 + x2\n\
-      \  ;i <- 10\n\
-      \  ;sum <- 0\n\
-      \  ;while i do\n\
-      \     sum <- (sum + i)\n\
-      \     ;i <- i - 1\n\
+      \  i <- 16;\n\
+      \  while i do\n\
+      \     n <- RECEIVE[0];\n\
+      \     SEND ~n;\n\
+      \     i <- i - 1;\n\
       \   end-while\n\
-      \  ;SEND sum\n\
       \end-program"
   in case prog of
        (Left err)   -> error err
        (Right prog) -> prog
-
-evaluate :: L.Program -> [Canvas] -> Canvas
-evaluate prog _ = S.scan canvasF

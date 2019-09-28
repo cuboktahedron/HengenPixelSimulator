@@ -4,5 +4,5 @@ module Hengen.Types
     )
 where
 
-type CanvasRow = Int
+type CanvasRow = Integer
 type Canvas = [CanvasRow]
