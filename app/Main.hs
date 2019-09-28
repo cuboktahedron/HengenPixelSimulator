@@ -2,6 +2,7 @@ module Main where
 
 import           Control.Monad.State.Lazy
 import qualified Hengen.Filter as F
+import qualified Hengen.HengenPixel as HP
 import qualified Hengen.Printer as P
 import qualified Hengen.Scanner as S
 import           Hengen.Types
@@ -25,22 +26,12 @@ main :: IO ()
 -- main = mapM_ putStrLn $ P.print $ F.or [S.scan original, S.scan checker]
 -- main = mapM_ putStrLn $ P.print $ F.border $ S.scan original
 
-main = L.parsecMain "\
-    \program Program1\n\
-    \   x1 <- (1 + 3)\n\
-    \  ;x2 <- (5 - 3) + (2 + 4)\n\
-    \  ;SEND x1 + x2\n\
-    \  ;i <- 10\n\
-    \  ;sum <- 0\n\
-    \  ;while i do\n\
-    \     sum <- (sum + i)\n\
-    \     ;i <- i - 1\n\
-    \   end-while\n\
-    \  ;SEND sum\n\
-    \end-program"
+--{ scanner { filter }* }+ -> Printer
 
-
--- main = print $ runState L.parsecMain []
+main = HP.test2
+  -- let scanner = HP.createScanner ""
+  --     filter = HP.loadFilter ""
+  -- in print $ scanner
 
 original =
   [ "0000000000000000"

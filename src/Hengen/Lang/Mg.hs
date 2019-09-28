@@ -155,7 +155,10 @@ applyExpr (Duo duop expr1 expr2) = case duop of
     value2 <- applyExpr expr2
     return $ value1 - value2
 
-parsecMain = play
+parseFilter :: String -> Either String Program
+parseFilter inp = case parse programparser "" inp of
+  Left err  -> Left $ show err
+  Right ans -> Right ans
 
 type Env = [(String, Integer)]
 

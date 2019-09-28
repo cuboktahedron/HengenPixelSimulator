@@ -1,13 +1,14 @@
-module Hengen.Printer
-  ( Hengen.Printer.print
-  )
-where
+module Hengen.Printer (Hengen.Printer.print) where
 
 import           Data.Bits
+import           Hengen.Types
 
-print :: [Int] -> [String]
+print :: Canvas -> [String]
 print ns = map printRow ns
 
-printRow :: Int -> String
+printRow :: CanvasRow -> String
 printRow n = map printBit [15, 14 .. 0]
-  where printBit p = if ((n `shiftR` p) .&. 1) == 1 then '1' else '0'
+  where
+    printBit p = if ((n `shiftR` p) .&. 1) == 1
+                 then '1'
+                 else '0'
