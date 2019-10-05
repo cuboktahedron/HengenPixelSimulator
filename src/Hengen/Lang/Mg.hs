@@ -73,7 +73,7 @@ TokenParser { parens = m_parens
             , reservedOp = m_reservedOp
             , reserved = m_reserved
             , semiSep1 = m_semiSep1
-            , brackets  = m_brackets
+            , brackets = m_brackets
             , whiteSpace = m_whiteSpace
             } = makeTokenParser def
 
@@ -168,14 +168,19 @@ applyStmt (Seq stmts) = do
 
 applyIn :: Int -> StateT Env Identity Integer
 applyIn ix = state
-  $ \ss -> let is = inputs ss
-              -- TODO: boundary check
-               (row:rows) = is !! ix
-               next = ss {
-                 inputs = take ix is ++ [rows] ++ drop (ix + 1) is
-               }
-            in (row, next)
-  
+  $ \ss
+  -> let is = inputs ss
+         rows = if (length is) <= ix
+                then []
+                else is !! ix
+     in case rows of
+          []        -> (0, ss)
+          otherwise
+            -> let (row:rows) = is !! ix
+                   next =
+                     ss { inputs = take ix is ++ [rows] ++ drop (ix + 1) is }
+               in (row, next)
+
 applyExpr :: Expr -> StateT Env Identity Integer
 applyExpr (Const i) = return i
 applyExpr (Var name) = getVar name
@@ -186,18 +191,12 @@ applyExpr (Uno unop expr) = case unop of
 applyExpr (Duo duop expr1 expr2) = do
   value1 <- applyExpr expr1
   value2 <- applyExpr expr2
-
   case duop of
-    Add ->
-      return $ value1 + value2
-    And ->
-      return $ value1 .&. value2
-    BitLShift ->
-      return $ value1 `shiftL` (fromInteger value2)
-    BitRShift ->
-      return $ value1 `shiftR` (fromInteger value2)
-    Minus ->
-      return $ value1 - value2
+    Add       -> return $ value1 + value2
+    And       -> return $ value1 .&. value2
+    BitLShift -> return $ value1 `shiftL` (fromInteger value2)
+    BitRShift -> return $ value1 `shiftR` (fromInteger value2)
+    Minus     -> return $ value1 - value2
 
 parseProgram :: String -> Either String Program
 parseProgram inp = case parse programparser "" inp of

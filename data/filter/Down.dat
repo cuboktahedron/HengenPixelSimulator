@@ -1,9 +1,9 @@
-program And
-  i <- 16;
+program Down
+  i <- 16 - 1;
+  SEND 0;
   while i do
      n1 <- RECEIVE[0];
-     n2 <- RECEIVE[1];
-     SEND n1 & n2;
+     SEND n1;
      i <- i - 1;
    end-while
 end-program
