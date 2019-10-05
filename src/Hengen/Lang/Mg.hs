@@ -54,7 +54,9 @@ data Program = Program String Stmt
   deriving Show
 
 def :: LanguageDef st
-def = emptyDef { identStart = letter
+def = emptyDef { commentStart = "{-"
+               , commentEnd = "-}"
+               , identStart = letter
                , identLetter = alphaNum
                , opStart = oneOf "<>+-&|"
                , opLetter = oneOf "<>+-&|"

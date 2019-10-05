@@ -80,6 +80,13 @@ test9 = do
   printHG $ HGPrinter $ HGNFilter $ HGFilter swap [HGNScanner f]
   return ()
 
+test10 :: IO ()
+test10 = do
+  f <- createScannerIO "F.dat"
+  swap <- loadFilterIO "Reverse.dat"
+  printHG $ HGPrinter $ HGNFilter $ HGFilter swap [HGNScanner f]
+  return ()
+
 printHG :: HGPrinter -> IO ()
 printHG (HGPrinter node) = mapM_ putStrLn $ P.print $ through node
 
