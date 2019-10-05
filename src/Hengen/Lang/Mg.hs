@@ -5,12 +5,12 @@ import           Control.Monad.Identity
 import           Control.Monad.State
 import           Data.Bits
 import           Data.Foldable (sequenceA_)
+import           Data.List
 import           Text.Parsec hiding (State)
 import           Text.ParserCombinators.Parsec.Char
 import           Text.Parsec.String
 import           Text.Parsec.Expr
 import           Text.Parsec.Token
-import           Data.List
 import           Text.Parsec.Language
 import           Hengen.Types
 
@@ -36,6 +36,8 @@ data Unop = Not
 
 data Duop = Add
           | Minus
+          | BitLShift
+          | BitRShift
   deriving Show
 
 data Stmt = String := Expr
@@ -52,9 +54,9 @@ data Program = Program String Stmt
 def :: LanguageDef st
 def = emptyDef { identStart = letter
                , identLetter = alphaNum
-               , opStart = oneOf "<+-"
-               , opLetter = oneOf "<+-"
-               , reservedOpNames = ["+", "-", "<-"]
+               , opStart = oneOf "<>+-"
+               , opLetter = oneOf "<>+-"
+               , reservedOpNames = ["+", "-", "<-", "<<", ">>"]
                , reservedNames = [ "RECEIVE"
                                  , "SEND"
                                  , "while"
@@ -78,6 +80,8 @@ exprparser :: Parser Expr
 exprparser = buildExpressionParser table term <?> "expression"
 
 table = [ [Prefix (m_reservedOp "~" >> return (Uno Complement))]
+        , [Infix (m_reservedOp "<<" >> return (Duo BitLShift)) AssocLeft]
+        , [Infix (m_reservedOp ">>" >> return (Duo BitRShift)) AssocLeft]
         , [Infix (m_reservedOp "+" >> return (Duo Add)) AssocLeft]
         , [Infix (m_reservedOp "-" >> return (Duo Minus)) AssocLeft]]
 
@@ -177,15 +181,19 @@ applyExpr (Uno unop expr) = case unop of
   Complement -> do
     value <- applyExpr expr
     return $ complement value
-applyExpr (Duo duop expr1 expr2) = case duop of
-  Add   -> do
-    value1 <- applyExpr expr1
-    value2 <- applyExpr expr2
-    return $ value1 + value2
-  Minus -> do
-    value1 <- applyExpr expr1
-    value2 <- applyExpr expr2
-    return $ value1 - value2
+applyExpr (Duo duop expr1 expr2) = do
+  value1 <- applyExpr expr1
+  value2 <- applyExpr expr2
+
+  case duop of
+    Add ->
+      return $ value1 + value2
+    Minus ->
+      return $ value1 - value2
+    BitLShift ->
+      return $ value1 `shiftL` (fromInteger value2)
+    BitRShift ->
+      return $ value1 `shiftR` (fromInteger  value2)
 
 parseProgram :: String -> Either String Program
 parseProgram inp = case parse programparser "" inp of

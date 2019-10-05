@@ -37,6 +37,20 @@ test3 = do
   printHG $ HGPrinter $ HGNFilter $ HGFilter complement [HGNScanner f]
   return ()
 
+test4 :: IO ()
+test4 = do
+  f <- createScannerIO "F.dat"
+  left <- loadFilterIO "Left.dat"
+  printHG $ HGPrinter $ HGNFilter $ HGFilter left [HGNScanner f]
+  return ()
+
+test5 :: IO ()
+test5 = do
+  f <- createScannerIO "F.dat"
+  right <- loadFilterIO "Right.dat"
+  printHG $ HGPrinter $ HGNFilter $ HGFilter right [HGNScanner f]
+  return ()
+
 printHG :: HGPrinter -> IO ()
 printHG (HGPrinter node) = mapM_ putStrLn $ P.print $ through node
 
