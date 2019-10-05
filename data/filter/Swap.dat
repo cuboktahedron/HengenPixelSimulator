@@ -1,0 +1,8 @@
+program Swap
+  i <- 16;
+  while i do
+     n <- RECEIVE[0];
+     SEND (n >> 8) | (n << 8);
+     i <- i - 1;
+   end-while
+end-program

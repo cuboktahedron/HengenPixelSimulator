@@ -39,6 +39,7 @@ data Duop = Add
           | BitLShift
           | BitRShift
           | Minus
+          | Or
   deriving Show
 
 data Stmt = String := Expr
@@ -55,8 +56,8 @@ data Program = Program String Stmt
 def :: LanguageDef st
 def = emptyDef { identStart = letter
                , identLetter = alphaNum
-               , opStart = oneOf "<>+-"
-               , opLetter = oneOf "<>+-"
+               , opStart = oneOf "<>+-&|"
+               , opLetter = oneOf "<>+-&|"
                , reservedOpNames = ["+", "-", "<-", "<<", ">>", "&"]
                , reservedNames = [ "RECEIVE"
                                  , "SEND"
@@ -82,6 +83,7 @@ exprparser = buildExpressionParser table term <?> "expression"
 
 table = [ [Prefix (m_reservedOp "~" >> return (Uno Complement))]
         , [Infix (m_reservedOp "&" >> return (Duo And)) AssocLeft]
+        , [Infix (m_reservedOp "|" >> return (Duo Or)) AssocLeft]
         , [Infix (m_reservedOp "<<" >> return (Duo BitLShift)) AssocLeft]
         , [Infix (m_reservedOp ">>" >> return (Duo BitRShift)) AssocLeft]
         , [Infix (m_reservedOp "+" >> return (Duo Add)) AssocLeft]
@@ -197,6 +199,7 @@ applyExpr (Duo duop expr1 expr2) = do
     BitLShift -> return $ value1 `shiftL` (fromInteger value2)
     BitRShift -> return $ value1 `shiftR` (fromInteger value2)
     Minus     -> return $ value1 - value2
+    Or        -> return $ value1 .|. value2
 
 parseProgram :: String -> Either String Program
 parseProgram inp = case parse programparser "" inp of

@@ -27,7 +27,7 @@ main :: IO ()
 -- main = mapM_ putStrLn $ P.print $ F.border $ S.scan original
 --{ scanner { filter }* }+ -> Printer
 main = do
-  HP.test8
+  HP.test9
 
 -- let scanner = HP.createScanner ""
 --     filter = HP.loadFilter ""
