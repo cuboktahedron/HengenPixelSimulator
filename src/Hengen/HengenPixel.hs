@@ -51,6 +51,14 @@ test5 = do
   printHG $ HGPrinter $ HGNFilter $ HGFilter right [HGNScanner f]
   return ()
 
+test6 :: IO ()
+test6 = do
+  f <- createScannerIO "F.dat"
+  checker <- createScannerIO "Checker.dat"
+  and <- loadFilterIO "And.dat"
+  printHG $ HGPrinter $ HGNFilter $ HGFilter and [HGNScanner f, HGNScanner checker]
+  return ()
+
 printHG :: HGPrinter -> IO ()
 printHG (HGPrinter node) = mapM_ putStrLn $ P.print $ through node
 

@@ -35,9 +35,10 @@ data Unop = Not
   deriving Show
 
 data Duop = Add
-          | Minus
+          | And
           | BitLShift
           | BitRShift
+          | Minus
   deriving Show
 
 data Stmt = String := Expr
@@ -56,7 +57,7 @@ def = emptyDef { identStart = letter
                , identLetter = alphaNum
                , opStart = oneOf "<>+-"
                , opLetter = oneOf "<>+-"
-               , reservedOpNames = ["+", "-", "<-", "<<", ">>"]
+               , reservedOpNames = ["+", "-", "<-", "<<", ">>", "&"]
                , reservedNames = [ "RECEIVE"
                                  , "SEND"
                                  , "while"
@@ -80,6 +81,7 @@ exprparser :: Parser Expr
 exprparser = buildExpressionParser table term <?> "expression"
 
 table = [ [Prefix (m_reservedOp "~" >> return (Uno Complement))]
+        , [Infix (m_reservedOp "&" >> return (Duo And)) AssocLeft]
         , [Infix (m_reservedOp "<<" >> return (Duo BitLShift)) AssocLeft]
         , [Infix (m_reservedOp ">>" >> return (Duo BitRShift)) AssocLeft]
         , [Infix (m_reservedOp "+" >> return (Duo Add)) AssocLeft]
@@ -188,12 +190,14 @@ applyExpr (Duo duop expr1 expr2) = do
   case duop of
     Add ->
       return $ value1 + value2
-    Minus ->
-      return $ value1 - value2
+    And ->
+      return $ value1 .&. value2
     BitLShift ->
       return $ value1 `shiftL` (fromInteger value2)
     BitRShift ->
-      return $ value1 `shiftR` (fromInteger  value2)
+      return $ value1 `shiftR` (fromInteger value2)
+    Minus ->
+      return $ value1 - value2
 
 parseProgram :: String -> Either String Program
 parseProgram inp = case parse programparser "" inp of
