@@ -87,6 +87,29 @@ test10 = do
   printHG $ HGPrinter $ HGNFilter $ HGFilter swap [HGNScanner f]
   return ()
 
+test11 :: IO ()
+test11 = do
+  f <- createScannerIO "F.dat"
+  and <- loadFilterIO "And.dat"
+  up <- loadFilterIO "Up.dat"
+  down <- loadFilterIO "Down.dat"
+  left <- loadFilterIO "Left.dat"
+  right <- loadFilterIO "Right.dat"
+  complement <- loadFilterIO "Complement.dat"
+
+  let s1 = HGNScanner f
+      f1 = HGNFilter $ HGFilter complement [f2]
+      f2 = HGNFilter $ HGFilter and [f3, f4]
+      f3 = HGNFilter $ HGFilter and [f5, f6]
+      f4 = HGNFilter $ HGFilter and [f7, f8]
+      f5 = HGNFilter $ HGFilter right [s1]
+      f6 = HGNFilter $ HGFilter left [s1]
+      f7 = HGNFilter $ HGFilter up [s1]
+      f8 = HGNFilter $ HGFilter down [s1]
+
+  printHG $ HGPrinter $ HGNFilter $ HGFilter and [s1, f1]
+  return ()
+
 printHG :: HGPrinter -> IO ()
 printHG (HGPrinter node) = mapM_ putStrLn $ P.print $ through node
 
