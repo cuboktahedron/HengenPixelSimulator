@@ -25,14 +25,13 @@ main :: IO ()
 -- main = mapM_ putStrLn $ P.print $ F.and [S.scan original, S.scan checker]
 -- main = mapM_ putStrLn $ P.print $ F.or [S.scan original, S.scan checker]
 -- main = mapM_ putStrLn $ P.print $ F.border $ S.scan original
-
 --{ scanner { filter }* }+ -> Printer
+main = do
+  HP.test3
 
-main = HP.test2
-  -- let scanner = HP.createScanner ""
-  --     filter = HP.loadFilter ""
-  -- in print $ scanner
-
+-- let scanner = HP.createScanner ""
+--     filter = HP.loadFilter ""
+-- in print $ scanner
 original =
   [ "0000000000000000"
   , "0000000000000000"
