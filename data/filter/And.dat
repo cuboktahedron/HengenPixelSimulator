@@ -1,9 +1,10 @@
 program And
-  i <- 16;
-  while i do
-     n1 <- RECEIVE[0];
-     n2 <- RECEIVE[1];
-     SEND n1 & n2;
-     i <- i - 1;
+  k <- 0;
+  while k < 16 do
+     a <- RECEIVE[0];
+     b <- RECEIVE[1];
+     x <- a & b;
+     SEND x;
+     k <- k + 1;
    end-while
 end-program

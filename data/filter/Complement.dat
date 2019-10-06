@@ -1,8 +1,9 @@
 program Complement
-  i <- 16;
-  while i do
-     n <- RECEIVE[0];
-     SEND ~n;
-     i <- i - 1;
+  k <- 0;
+  while k < 16 do
+     x <- RECEIVE[0];
+     x <- ~x;
+     SEND x;
+     k <- k + 1;
    end-while
 end-program

@@ -83,8 +83,8 @@ test9 = do
 test10 :: IO ()
 test10 = do
   f <- createScannerIO "F.dat"
-  swap <- loadFilterIO "Reverse.dat"
-  printHG $ HGPrinter $ HGNFilter $ HGFilter swap [HGNScanner f]
+  reverse <- loadFilterIO "Reverse.dat"
+  printHG $ HGPrinter $ HGNFilter $ HGFilter reverse [HGNScanner f]
   return ()
 
 test11 :: IO ()

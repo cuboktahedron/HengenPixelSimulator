@@ -1,8 +1,9 @@
 program Left
-  i <- 16;
-  while i do
-     n1 <- RECEIVE[0];
-     SEND n1 << 1;
-     i <- i - 1;
+  k <- 0;
+  while k < 16 do
+     x <- RECEIVE[0];
+     x <- x << 1;
+     SEND x;
+     k <- k + 1;
    end-while
 end-program

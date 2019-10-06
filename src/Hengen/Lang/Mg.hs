@@ -12,14 +12,16 @@ import           Text.Parsec.String
 import           Text.Parsec.Expr
 import           Text.Parsec.Token
 import           Text.Parsec.Language
+import           Prelude hiding (EQ, GT, LT)
 import           Hengen.Types
 
 -- expr    ::= var | ( expr ) | const | unop expr | expr duop expr
+-- bexpr   ::= ( bexpr ) | bconst | bunop bexpr | bexpr duop bexpr
 -- var     ::= letter { letter | digit }*
 -- const   ::= { digit }+
 -- unop    ::= ~
 -- duop    ::= + | - 
--- stmt    ::= var <- expr | var <- in | out | while expr do stmt end-while | stmt { \n stmt }+
+-- stmt    ::= var <- expr | var <- in | out | while bexpr do stmt end-while | stmt { \n stmt }+
 -- out     ::= SEND expr
 -- in      ::= RECEIVE [ { digit }+ ]
 -- pname   ::= letter { letter | digit }*
@@ -29,6 +31,29 @@ data Expr = Var String
           | Uno Unop Expr
           | Duo Duop Expr Expr
   deriving Show
+
+data BoolExpr = BoolConst Bool
+              | BoolUno BoolUnop BoolExpr
+              | BoolDuo BoolDuop BoolExpr BoolExpr
+              | BoolDuoCmp BoolDuopCmp Expr Expr
+  deriving Show
+
+data BoolUnop = BoolNot
+  deriving Show
+
+data BoolDuop = BoolAnd
+              | BoolOr
+  deriving Show
+
+data BoolDuopCmp = EQ
+                 | GT
+                 | GTE
+                 | LT
+                 | LTE
+  deriving Show
+
+data BConst = BTrue
+            | BFalse
 
 data Unop = Not
           | Complement
@@ -45,7 +70,7 @@ data Duop = Add
 data Stmt = String := Expr
           | In String Int
           | Out Expr
-          | While Expr Stmt
+          | While BoolExpr Stmt
           | Seq [Stmt]
           | Nop
   deriving Show
@@ -54,21 +79,37 @@ data Program = Program String Stmt
   deriving Show
 
 def :: LanguageDef st
-def = emptyDef { commentStart = "{-"
-               , commentEnd = "-}"
-               , identStart = letter
-               , identLetter = alphaNum
-               , opStart = oneOf "<>+-&|"
-               , opLetter = oneOf "<>+-&|"
-               , reservedOpNames = ["+", "-", "<-", "<<", ">>", "&"]
-               , reservedNames = [ "RECEIVE"
-                                 , "SEND"
-                                 , "while"
-                                 , "do"
-                                 , "end-while"
-                                 , "program"
-                                 , "end-program"]
-               }
+def =
+  emptyDef { commentStart = "{-"
+           , commentEnd = "-}"
+           , identStart = letter
+           , identLetter = alphaNum
+           , opStart = oneOf "<>+-&|=!"
+           , opLetter = oneOf "<>+-&|=!"
+           , reservedOpNames =
+               [ "+"
+               , "-"
+               , "<-"
+               , "<<"
+               , ">>"
+               , "&"
+               , "!"
+               , ">"
+               , ">="
+               , "<"
+               , "<="
+               , "=="]
+           , reservedNames =
+               [ "RECEIVE"
+               , "SEND"
+               , "while"
+               , "do"
+               , "end-while"
+               , "program"
+               , "end-program"
+               , "true"
+               , "false"]
+           }
 
 TokenParser { parens = m_parens
             , integer = m_integer
@@ -79,6 +120,15 @@ TokenParser { parens = m_parens
             , brackets = m_brackets
             , whiteSpace = m_whiteSpace
             } = makeTokenParser def
+
+m_bool = bool <?> "bool"
+
+bool = do
+  m_reserved "true"
+  return True
+  <|> do
+    m_reserved "false"
+    return False
 
 exprparser :: Parser Expr
 exprparser = buildExpressionParser table term <?> "expression"
@@ -96,6 +146,44 @@ term = m_parens exprparser
   <|> do
     i <- m_integer
     return (Const i)
+
+boolexprparser :: Parser BoolExpr
+boolexprparser = buildExpressionParser boolTable boolTerm <?> "boolExpression"
+
+boolTable = [ [Prefix (m_reservedOp "!" >> return (BoolUno BoolNot))]
+            , [Infix (m_reservedOp "&&" >> return (BoolDuo BoolAnd)) AssocLeft]
+            , [Infix (m_reservedOp "||" >> return (BoolDuo BoolOr)) AssocLeft]]
+
+boolTerm = m_parens boolexprparser2
+  <|> do
+    b <- m_bool
+    return (BoolConst b)
+
+boolexprparser2 :: Parser BoolExpr
+boolexprparser2 = try (boolexprparser) <|> compareparser
+
+compareparser :: Parser BoolExpr
+compareparser = do
+  expr1 <- exprparser
+  op <- compareopparser
+  expr2 <- exprparser
+  return (BoolDuoCmp op expr1 expr2)
+
+compareopparser = do
+  m_reservedOp "=="
+  return EQ
+  <|> do
+    m_reservedOp ">"
+    return GT
+  <|> do
+    m_reservedOp ">="
+    return GTE
+  <|> do
+    m_reservedOp "<"
+    return LT
+  <|> do
+    m_reservedOp "<="
+    return LTE
 
 programparser :: Parser Program
 programparser = do
@@ -131,11 +219,11 @@ stmtparser = fmap Seq (m_semiSep1 stmt1)
       <|> try
         (do
            m_reserved "while"
-           expr <- exprparser
+           bexpr <- boolexprparser2
            m_reserved "do"
            stmt <- stmtparser
            m_reserved "end-while"
-           return (While expr stmt))
+           return (While bexpr stmt))
       <|> return Nop
 
 execProgram :: Program -> [Canvas] -> Canvas
@@ -158,12 +246,12 @@ applyStmt (Out expr) = do
   send value
   --  lift $ print value
   return ()
-applyStmt (While expr stmt) = do
-  value <- applyExpr expr
-  if value > 0
+applyStmt (While bexpr stmt) = do
+  value <- applyBoolExpr bexpr
+  if value
     then do
       applyStmt stmt
-      applyStmt (While expr stmt)
+      applyStmt (While bexpr stmt)
     else return ()
 applyStmt Nop = return ()
 applyStmt (Seq stmts) = do
@@ -203,6 +291,28 @@ applyExpr (Duo duop expr1 expr2) = do
     Minus     -> return $ value1 - value2
     Or        -> return $ value1 .|. value2
 
+applyBoolExpr :: BoolExpr -> StateT Env Identity Bool
+applyBoolExpr (BoolConst b) = return b
+applyBoolExpr (BoolUno unop expr) = case unop of
+  BoolNot -> do
+    value <- applyBoolExpr expr
+    return $ not value
+applyBoolExpr (BoolDuo duop expr1 expr2) = do
+  value1 <- applyBoolExpr expr1
+  value2 <- applyBoolExpr expr2
+  case duop of
+    BoolAnd -> return $ value1 && value2
+    BoolOr  -> return $ value1 || value2
+applyBoolExpr (BoolDuoCmp duop expr1 expr2) = do
+  value1 <- applyExpr expr1
+  value2 <- applyExpr expr2
+  case duop of
+    EQ  -> return $ value1 == value2
+    GT  -> return $ value1 > value2
+    GTE -> return $ value1 >= value2
+    LT  -> return $ value1 < value2
+    LTE -> return $ value1 <= value2
+
 parseProgram :: String -> Either String Program
 parseProgram inp = case parse programparser "" inp of
   Left err  -> Left $ show err
@@ -211,7 +321,8 @@ parseProgram inp = case parse programparser "" inp of
 data Env = Env { variables :: M.Map String Integer
                , inputs :: [Canvas]
                , outputs :: [CanvasRow]
-               } deriving Show
+               }
+  deriving Show
 
 emptyEnv = Env { variables = M.empty, inputs = [], outputs = [] }
 
