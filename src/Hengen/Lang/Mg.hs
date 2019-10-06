@@ -5,7 +5,7 @@ import           Control.Monad.Identity
 import           Control.Monad.State
 import           Data.Bits
 import           Data.Foldable (sequenceA_)
-import           Data.List
+import qualified Data.Map as M
 import           Text.Parsec hiding (State)
 import           Text.ParserCombinators.Parsec.Char
 import           Text.Parsec.String
@@ -208,12 +208,12 @@ parseProgram inp = case parse programparser "" inp of
   Left err  -> Left $ show err
   Right ans -> Right ans
 
-data Env = Env { variables :: [(String, Integer)]
+data Env = Env { variables :: M.Map String Integer
                , inputs :: [Canvas]
                , outputs :: [CanvasRow]
-               }
+               } deriving Show
 
-emptyEnv = Env { variables = [], inputs = [], outputs = [] }
+emptyEnv = Env { variables = M.empty, inputs = [], outputs = [] }
 
 initialEnv :: [Canvas] -> Env
 initialEnv is = emptyEnv { inputs = is }
@@ -224,14 +224,14 @@ initialEnvState is = state $ \ss -> ((), initialEnv is)
 defineVar :: (String, Integer) -> StateT Env Identity ()
 defineVar (name, value) = state
   $ \ss -> let vars = variables ss
-               -- TODO: determine multiple definition
-               next = ss { variables = (name, value):vars }
+               newVars = M.insert name value vars
+               next = ss { variables = newVars }
            in ((), next)
 
 getVar :: String -> StateT Env Identity Integer
 getVar name = state
   $ \ss -> let vars = variables ss
-               value = lookup name vars
+               value = M.lookup name vars
            in case value of
                 Just x    -> (x, ss)
                 otherwise -> (0, ss)
