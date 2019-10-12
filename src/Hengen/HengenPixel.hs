@@ -16,76 +16,11 @@ data HGFilter = HGFilter L.Program [HGNode]
 data HGPrinter = HGPrinter HGNode
   deriving Show
 
-data HGNode = HGNFilter HGFilter
+data HGNode = HGNPrinter HGPrinter
+            | HGNFilter HGFilter
             | HGNScanner HGScanner
             | HGNEmpty
   deriving Show
-
-test1 :: IO ()
-test1 = printHG $ HGPrinter $ HGNScanner $ createScanner "F"
-
-test2 :: IO ()
-test2 = printHG
-  $ HGPrinter
-  $ HGNFilter
-  $ HGFilter (loadFilter "") [HGNScanner $ createScanner "F"]
-
-test3 :: IO ()
-test3 = do
-  f <- createScannerIO "F.dat"
-  complement <- loadFilterIO "Complement.dat"
-  printHG $ HGPrinter $ HGNFilter $ HGFilter complement [HGNScanner f]
-  return ()
-
-test4 :: IO ()
-test4 = do
-  f <- createScannerIO "F.dat"
-  left <- loadFilterIO "Left.dat"
-  printHG $ HGPrinter $ HGNFilter $ HGFilter left [HGNScanner f]
-  return ()
-
-test5 :: IO ()
-test5 = do
-  f <- createScannerIO "F.dat"
-  right <- loadFilterIO "Right.dat"
-  printHG $ HGPrinter $ HGNFilter $ HGFilter right [HGNScanner f]
-  return ()
-
-test6 :: IO ()
-test6 = do
-  f <- createScannerIO "F.dat"
-  checker <- createScannerIO "Checker.dat"
-  and <- loadFilterIO "And.dat"
-  printHG $ HGPrinter $ HGNFilter $ HGFilter and [HGNScanner f, HGNScanner checker]
-  return ()
-
-test7 :: IO ()
-test7 = do
-  f <- createScannerIO "F.dat"
-  up <- loadFilterIO "Up.dat"
-  printHG $ HGPrinter $ HGNFilter $ HGFilter up [HGNScanner f]
-  return ()
-
-test8 :: IO ()
-test8 = do
-  f <- createScannerIO "F.dat"
-  down <- loadFilterIO "Down.dat"
-  printHG $ HGPrinter $ HGNFilter $ HGFilter down [HGNScanner f]
-  return ()
-
-test9 :: IO ()
-test9 = do
-  f <- createScannerIO "F.dat"
-  swap <- loadFilterIO "Swap.dat"
-  printHG $ HGPrinter $ HGNFilter $ HGFilter swap [HGNScanner f]
-  return ()
-
-test10 :: IO ()
-test10 = do
-  f <- createScannerIO "F.dat"
-  reverse <- loadFilterIO "Reverse.dat"
-  printHG $ HGPrinter $ HGNFilter $ HGFilter reverse [HGNScanner f]
-  return ()
 
 test11 :: IO ()
 test11 = do
@@ -98,26 +33,28 @@ test11 = do
   complement <- loadFilterIO "Complement.dat"
 
   let s1 = HGNScanner f
-      f1 = HGNFilter $ HGFilter complement [f2]
-      f2 = HGNFilter $ HGFilter and [f3, f4]
-      f3 = HGNFilter $ HGFilter and [f5, f6]
-      f4 = HGNFilter $ HGFilter and [f7, f8]
-      f5 = HGNFilter $ HGFilter right [s1]
-      f6 = HGNFilter $ HGFilter left [s1]
-      f7 = HGNFilter $ HGFilter up [s1]
-      f8 = HGNFilter $ HGFilter down [s1]
+      f1 = HGNFilter $ HGFilter and [s1, f2]
+      f2 = HGNFilter $ HGFilter complement [f3]
+      f3 = HGNFilter $ HGFilter and [f4, f5]
+      f4 = HGNFilter $ HGFilter and [f6, f7]
+      f5 = HGNFilter $ HGFilter and [f8, f9]
+      f6 = HGNFilter $ HGFilter right [s1]
+      f7 = HGNFilter $ HGFilter left [s1]
+      f8 = HGNFilter $ HGFilter up [s1]
+      f9 = HGNFilter $ HGFilter down [s1]
+      p  = HGNPrinter $ HGPrinter $ f1
+  
+  printHG p
 
-  printHG $ HGPrinter $ HGNFilter $ HGFilter and [s1, f1]
-  return ()
-
-printHG :: HGPrinter -> IO ()
-printHG (HGPrinter node) = mapM_ putStrLn $ P.print $ through node
+printHG :: HGNode -> IO ()
+printHG (HGNPrinter (HGPrinter node)) = mapM_ putStrLn $ P.print $ through node
 
 through :: HGNode -> Canvas
 through HGNEmpty = []
 through (HGNFilter (HGFilter prog nodes)) =
   L.execProgram prog (map through nodes)
 through (HGNScanner (HGScanner scanner)) = S.scan $ scanner
+through (HGNPrinter (HGPrinter node)) = through node
 
 canvasF =
   [ "0000000000000000"

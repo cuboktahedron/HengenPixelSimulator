@@ -7,6 +7,7 @@ import qualified Hengen.Printer as P
 import qualified Hengen.Scanner as S
 import           Hengen.Types
 import qualified Hengen.Lang.Mg as L
+import qualified Hengen.Lang.Graph as Graph
 
 main :: IO ()
 
@@ -27,7 +28,7 @@ main :: IO ()
 -- main = mapM_ putStrLn $ P.print $ F.border $ S.scan original
 --{ scanner { filter }* }+ -> Printer
 main = do
-  HP.test9
+  Graph.test1
 
 -- let scanner = HP.createScanner ""
 --     filter = HP.loadFilter ""
