@@ -74,7 +74,7 @@ makeGraphIO inps = execStateT
 
 makeGraphOne :: String -> StateT (M.Map NodeName GraphNode) IO ()
 makeGraphOne inp = StateT
-  $ \ss -> case parse stmtparser "" inp of
+  $ \ss -> case parse stmtParser "" inp of
     Left err  -> error $ show err
     Right ans
       -> let f = (\io -> do
@@ -95,8 +95,8 @@ makeGraphOne inp = StateT
           newGraphs = nub (graphs old ++ graphs new)
       in GraphNode { nodeFactory = newNodeFac, graphs = newGraphs }
 
-definitionparser :: Parser [IO (NodeName, GraphNode)]
-definitionparser = try
+definitionParser :: Parser [IO (NodeName, GraphNode)]
+definitionParser = try
   (do
      nms <- m_commaSeq1 m_identifier
      m_reservedOp "<-"
@@ -136,8 +136,8 @@ definitionparser = try
                              (\(n:ns) -> HGNPrinter $ HGPrinter n)
                          })
 
-graphparser :: Parser [IO (NodeName, GraphNode)]
-graphparser = do
+graphParser :: Parser [IO (NodeName, GraphNode)]
+graphParser = do
   froms <- m_commaSeq1 m_identifier
   m_reservedOp "->"
   tos <- m_commaSeq1 m_identifier
@@ -145,5 +145,5 @@ graphparser = do
   where
     createGraph froms to = return (to, emptyGraphNode { graphs = froms })
 
-stmtparser :: Parser [IO (NodeName, GraphNode)]
-stmtparser = definitionparser <|> graphparser
+stmtParser :: Parser [IO (NodeName, GraphNode)]
+stmtParser = definitionParser <|> graphParser

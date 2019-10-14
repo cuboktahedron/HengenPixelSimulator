@@ -16,12 +16,16 @@ import           Prelude hiding (EQ, GT, LT)
 import           Hengen.Types
 
 -- expr    ::= var | ( expr ) | const | unop expr | expr duop expr
--- bexpr   ::= ( bexpr ) | bconst | bunop bexpr | bexpr duop bexpr
+-- bexpr   ::= ( bexpr ) | bconst | bunop bexpr | bexpr bduop bexpr | expr compop expr
 -- var     ::= letter { letter | digit }*
 -- const   ::= { digit }+
 -- unop    ::= ~
--- duop    ::= + | - 
--- stmt    ::= var <- expr | var <- in | out | while bexpr do stmt end-while | stmt { \n stmt }+
+-- duop    ::= + | - | >> | << | & | '|'
+-- bunop   ::= !
+-- bduop   ::= && | '||'
+-- compop  ::= == | > | >= | < | <=
+-- stmt    ::= var <- expr | var <- in | out expr | while bexpr do stmt end-while
+--           | stmt { \n stmt }+ | nop
 -- out     ::= SEND expr
 -- in      ::= RECEIVE [ { digit }+ ]
 -- pname   ::= letter { letter | digit }*
@@ -130,8 +134,8 @@ bool = do
     m_reserved "false"
     return False
 
-exprparser :: Parser Expr
-exprparser = buildExpressionParser table term <?> "expression"
+exprParser :: Parser Expr
+exprParser = buildExpressionParser table term <?> "expression"
 
 table = [ [Prefix (m_reservedOp "~" >> return (Uno Complement))]
         , [Infix (m_reservedOp "&" >> return (Duo And)) AssocLeft]
@@ -141,35 +145,35 @@ table = [ [Prefix (m_reservedOp "~" >> return (Uno Complement))]
         , [Infix (m_reservedOp "+" >> return (Duo Add)) AssocLeft]
         , [Infix (m_reservedOp "-" >> return (Duo Minus)) AssocLeft]]
 
-term = m_parens exprparser
+term = m_parens exprParser
   <|> fmap Var m_identifier
   <|> do
     i <- m_integer
     return (Const i)
 
-boolexprparser :: Parser BoolExpr
-boolexprparser = buildExpressionParser boolTable boolTerm <?> "boolExpression"
+boolExprParser :: Parser BoolExpr
+boolExprParser = buildExpressionParser boolTable boolTerm <?> "boolExpression"
 
 boolTable = [ [Prefix (m_reservedOp "!" >> return (BoolUno BoolNot))]
             , [Infix (m_reservedOp "&&" >> return (BoolDuo BoolAnd)) AssocLeft]
             , [Infix (m_reservedOp "||" >> return (BoolDuo BoolOr)) AssocLeft]]
 
-boolTerm = m_parens boolexprparser2
+boolTerm = m_parens boolExprParser2
   <|> do
     b <- m_bool
     return (BoolConst b)
 
-boolexprparser2 :: Parser BoolExpr
-boolexprparser2 = try (boolexprparser) <|> compareparser
+boolExprParser2 :: Parser BoolExpr
+boolExprParser2 = try (boolExprParser) <|> comparePparser
 
-compareparser :: Parser BoolExpr
-compareparser = do
-  expr1 <- exprparser
-  op <- compareopparser
-  expr2 <- exprparser
+comparePparser :: Parser BoolExpr
+comparePparser = do
+  expr1 <- exprParser
+  op <- compareOpParser
+  expr2 <- exprParser
   return (BoolDuoCmp op expr1 expr2)
 
-compareopparser = do
+compareOpParser = do
   m_reservedOp "=="
   return EQ
   <|> do
@@ -185,24 +189,24 @@ compareopparser = do
     m_reservedOp "<="
     return LTE
 
-programparser :: Parser Program
-programparser = do
+programParser :: Parser Program
+programParser = do
   m_whiteSpace
   m_reserved "program"
   pname <- m_identifier
-  stmt <- stmtparser
+  stmt <- stmtParser
   m_reserved "end-program"
   eof
   return (Program pname stmt)
 
-stmtparser :: Parser Stmt
-stmtparser = fmap Seq (m_semiSep1 stmt1)
+stmtParser :: Parser Stmt
+stmtParser = fmap Seq (m_semiSep1 stmt1)
   where
     stmt1 = try
       (do
          v <- m_identifier
          m_reservedOp "<-"
-         expr <- exprparser
+         expr <- exprParser
          return (v := expr))
       <|> try
         (do
@@ -214,14 +218,14 @@ stmtparser = fmap Seq (m_semiSep1 stmt1)
       <|> try
         (do
            m_reserved "SEND"
-           expr <- exprparser
+           expr <- exprParser
            return (Out expr))
       <|> try
         (do
            m_reserved "while"
-           bexpr <- boolexprparser2
+           bexpr <- boolExprParser2
            m_reserved "do"
-           stmt <- stmtparser
+           stmt <- stmtParser
            m_reserved "end-while"
            return (While bexpr stmt))
       <|> return Nop
@@ -314,7 +318,7 @@ applyBoolExpr (BoolDuoCmp duop expr1 expr2) = do
     LTE -> return $ value1 <= value2
 
 parseProgram :: String -> Either String Program
-parseProgram inp = case parse programparser "" inp of
+parseProgram inp = case parse programParser "" inp of
   Left err  -> Left $ show err
   Right ans -> Right ans
 
