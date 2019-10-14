@@ -1,0 +1,9 @@
+program Skew
+  k <- 0
+  while k < 16 do
+     x <- RECEIVE[0]
+     x <- x >> k
+     SEND x
+     k <- k + 1
+   end-while
+end-program
