@@ -1,14 +1,14 @@
 module Main where
 
 import qualified Hengen.Lang.Graph as Graph
+import           System.IO
 
 main :: IO ()
-
 main = do
-  test3
-
-test1 = Graph.execHengenPixel "minimal.dat"
-test2 = Graph.execHengenPixel "border.dat"
-test3 = Graph.execHengenPixel "swap_hv.dat"
-
-  
+  putStr "> " >> hFlush stdout
+  file <- getLine
+  if file == ""
+    then return ()
+    else do
+      Graph.execHengenPixel file
+      main
