@@ -1,4 +1,4 @@
-module Hengen.Lang.Graph where
+module Hengen.Lang.Graph(execHengenPixel) where
 
 import           Control.Monad.State
 import qualified Data.Map as M
@@ -23,16 +23,8 @@ data GraphNode =
 
 emptyGraphNode = GraphNode { nodeFactory = Nothing, graphs = [] }
 
-test1 = do
-  cs <- loadGraph "minimal.dat"
-  graphNodes <- makeGraphIO cs
-  let printer = case (createNode "p0" graphNodes) of
-        (Just node) -> HGNPrinter $ HGPrinter node
-        _           -> HGNPrinter $ HGPrinter HGNEmpty
-  printHG printer
-
-test2 = do
-  cs <- loadGraph "border.dat"
+execHengenPixel graphFile = do
+  cs <- loadGraph graphFile
   graphNodes <- makeGraphIO cs
   let printer = case (createNode "p0" graphNodes) of
         (Just node) -> HGNPrinter $ HGPrinter node
