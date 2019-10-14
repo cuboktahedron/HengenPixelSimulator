@@ -85,7 +85,6 @@ makeGraphOne inp = StateT
          in do
               gn <- mapM f ans
               let next = foldl (\acc (n, gn) -> M.insert n gn acc) ss gn
-              print inp
               return ((), next)
   where
     mergeGraph new old =
