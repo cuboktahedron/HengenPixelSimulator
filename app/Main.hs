@@ -28,7 +28,7 @@ main :: IO ()
 -- main = mapM_ putStrLn $ P.print $ F.border $ S.scan original
 --{ scanner { filter }* }+ -> Printer
 main = do
-  Graph.test1
+  Graph.test2
 
 -- let scanner = HP.createScanner ""
 --     filter = HP.loadFilter ""

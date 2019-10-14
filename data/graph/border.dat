@@ -1,16 +1,16 @@
-s1             <- S F;
-f1             <- F Right;
-f2             <- F Left;
-f3             <- F Up;
-f4             <- F Down;
-f5, f6, f7, f9 <- F And;
-f8             <- F Complement;
-p0             <- P;
+s1             <- S F.dat
+f1             <- F Right.dat
+f2             <- F Left.dat
+f3             <- F Up.dat
+f4             <- F Down.dat
+f5, f6, f7, f9 <- F And.dat
+f8             <- F Complement.dat
+p0             <- P
 
-s1     -> f1, f2, f3, f4;
-f1, f2 -> f5;
-f3, f4 -> f6;
-f5, f6 -> f7;
-f7     -> f8;
-s1, f8 -> f9;
-f9     -> p0;
+s1     -> f1, f2, f3, f4
+f1, f2 -> f5
+f3, f4 -> f6
+f5, f6 -> f7
+f7     -> f8
+s1, f8 -> f9
+f9     -> p0
