@@ -120,7 +120,6 @@ TokenParser { parens = m_parens
             , identifier = m_identifier
             , reservedOp = m_reservedOp
             , reserved = m_reserved
-            , semiSep1 = m_semiSep1
             , brackets = m_brackets
             , whiteSpace = m_whiteSpace
             } = makeTokenParser def
@@ -200,7 +199,7 @@ programParser = do
   return (Program pname stmt)
 
 stmtParser :: Parser Stmt
-stmtParser = fmap Seq (m_semiSep1 stmt1)
+stmtParser = fmap Seq (many stmt1)
   where
     stmt1 = try
       (do
@@ -228,7 +227,6 @@ stmtParser = fmap Seq (m_semiSep1 stmt1)
            stmt <- stmtParser
            m_reserved "end-while"
            return (While bexpr stmt))
-      <|> return Nop
 
 execProgram :: Program -> [Canvas] -> Canvas
 execProgram prog is = outputs $ runIdentity $ execStateT ss emptyEnv

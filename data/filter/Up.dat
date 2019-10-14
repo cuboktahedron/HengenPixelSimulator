@@ -1,9 +1,9 @@
 program Up
-  x <- RECEIVE[0];
-  k <- 0;
+  x <- RECEIVE[0]
+  k <- 0
   while k < 15 do
-     x <- RECEIVE[0];
-     SEND x;
-     k <- k + 1;
+     x <- RECEIVE[0]
+     SEND x
+     k <- k + 1
    end-while
 end-program

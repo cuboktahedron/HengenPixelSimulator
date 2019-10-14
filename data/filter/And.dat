@@ -1,10 +1,10 @@
 program And
-  k <- 0;
+  k <- 0
   while k < 16 do
-     a <- RECEIVE[0];
-     b <- RECEIVE[1];
-     x <- a & b;
-     SEND x;
-     k <- k + 1;
+     a <- RECEIVE[0]
+     b <- RECEIVE[1]
+     x <- a & b
+     SEND x
+     k <- k + 1
    end-while
 end-program
