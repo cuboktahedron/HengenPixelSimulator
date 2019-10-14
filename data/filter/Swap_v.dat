@@ -1,0 +1,24 @@
+program SwapV
+  x0 <- RECEIVE[0]
+  x1 <- RECEIVE[0]
+  x2 <- RECEIVE[0]
+  x3 <- RECEIVE[0]
+  x4 <- RECEIVE[0]
+  x5 <- RECEIVE[0]
+  x6 <- RECEIVE[0]
+  x7 <- RECEIVE[0]
+  k <- 0
+  while k < 8 do
+    x <- RECEIVE[0]
+    SEND x
+    k <- k + 1
+  end-while
+  SEND x0
+  SEND x1
+  SEND x2
+  SEND x3
+  SEND x4
+  SEND x5
+  SEND x6
+  SEND x7
+end-program
