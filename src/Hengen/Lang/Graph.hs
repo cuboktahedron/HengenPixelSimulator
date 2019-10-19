@@ -1,5 +1,8 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Hengen.Lang.Graph(execHengenPixel) where
 
+import           Control.Exception.Safe hiding (try)
 import           Control.Monad.State
 import qualified Data.Map as M
 import           Data.List
@@ -23,13 +26,15 @@ data GraphNode =
 
 emptyGraphNode = GraphNode { nodeFactory = Nothing, graphs = [] }
 
-execHengenPixel graphFile = do
+execHengenPixel graphFile = (do
   cs <- loadGraph graphFile
   graphNodes <- makeGraphIO cs
   let printer = case (createNode "p0" graphNodes) of
         (Just node) -> HGNPrinter $ HGPrinter node
         _           -> HGNPrinter $ HGPrinter HGNEmpty
   printHG printer
+  ) `catch` (\(e :: IOException) -> do
+    throw $ HengenPixelException $ show e)
 
 loadGraph :: FilePath -> IO String
 loadGraph file = do

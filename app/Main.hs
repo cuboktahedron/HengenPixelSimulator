@@ -1,5 +1,7 @@
 module Main where
 
+import           Control.Exception.Safe
+import Hengen.HengenPixel
 import qualified Hengen.Lang.Graph as Graph
 import           System.IO
 
@@ -10,5 +12,7 @@ main = do
   if file == ""
     then return ()
     else do
-      Graph.execHengenPixel file
+      (Graph.execHengenPixel file)
+        `catch` (\(HengenPixelException err) -> print $ show err)
+      putStrLn ""
       main
