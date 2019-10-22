@@ -1,4 +1,3 @@
-s1             <- S F.dat
 f1             <- F Right.dat
 f2             <- F Left.dat
 f3             <- F Up.dat
@@ -7,10 +6,10 @@ f5, f6, f7, f9 <- F And.dat
 f8             <- F Complement.dat
 p0             <- P
 
-s1     -> f1, f2, f3, f4
+i0     -> f1, f2, f3, f4
 f1, f2 -> f5
 f3, f4 -> f6
 f5, f6 -> f7
 f7     -> f8
-s1, f8 -> f9
+i0, f8 -> f9
 f9     -> p0

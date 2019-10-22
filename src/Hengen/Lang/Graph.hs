@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Hengen.Lang.Graph(execHengenPixel) where
+module Hengen.Lang.Graph (execHengenPixel) where
 
 import           Control.Exception.Safe hiding (try)
 import           Control.Monad.State
@@ -21,20 +21,31 @@ type NodeName = String
 
 type ENV = (M.Map NodeName GraphNode)
 
-data GraphNode =
-  GraphNode { nodeFactory :: Maybe ([HGNode] -> HGNode), graphs :: [NodeName] }
+data GraphNode = GraphNode { nodeFactory :: Maybe ([HGNode] -> IO (HGNode))
+                           , graphs :: [NodeName]
+                           }
+
+instance Show GraphNode where
+  show gn = let nfStr = "nodeFactory = " ++ (case nodeFactory gn of
+                  Just _ -> "Function"
+                  otherwise -> "Nothing")
+                graphsStr = "graphs = " ++ (show $ graphs gn)
+            in nfStr ++ ", " ++ graphsStr
 
 emptyGraphNode = GraphNode { nodeFactory = Nothing, graphs = [] }
 
-execHengenPixel graphFile = (do
-  cs <- loadGraph graphFile
-  graphNodes <- makeGraphIO cs
-  let printer = case (createNode "p0" graphNodes) of
-        (Just node) -> HGNPrinter $ HGPrinter node
-        _           -> HGNPrinter $ HGPrinter HGNEmpty
-  printHG printer
-  ) `catch` (\(e :: IOException) -> do
-    throw $ HengenPixelException $ show e)
+execHengenPixel graphFile =
+  (do
+     cs <- loadGraph graphFile
+     graphNodes <- makeGraphIO cs
+     printer <- createNode "p0" graphNodes
+     putStrLn $ "----------------------------------------------------------"
+     putStrLn $ "-- Output"
+     putStrLn $ "----------------------------------------------------------"
+     printHG $ HGNPrinter $ HGPrinter printer
+     putStrLn $ "----------------------------------------------------------")
+  `catch` (\(e :: IOException) -> do
+             throw $ HengenPixelException $ show e)
 
 loadGraph :: FilePath -> IO String
 loadGraph file = do
@@ -42,16 +53,23 @@ loadGraph file = do
       f = parseRelFile $ file :: IO (Path Rel File)
       sf = (</>) <$> parent <*> f
   path <- toFilePath <$> sf
+  putStrLn $ ""
+  putStrLn $ "----------------------------------------------------------"
+  putStrLn $ "-- Load Graph: " ++ path ++ ""
   cs <- readFile path
+  putStrLn $ "----------------------------------------------------------"
   return cs
 
-createNode :: String -> M.Map NodeName GraphNode -> Maybe HGNode
+createNode :: String -> M.Map NodeName GraphNode -> IO HGNode
 createNode nm gns = do
-  gn <- M.lookup nm gns
+  gn <- (case M.lookup nm gns of
+           Just gn -> return gn
+           Nothing -> return emptyGraphNode)
+  -- print $ nm ++ ":" ++ show gn
   nodes <- mapM (\nm -> createNode nm gns) $ graphs gn
   case nodeFactory gn of
-    (Just nf) -> Just $ nf nodes
-    _         -> Nothing
+    (Just nf) -> nf nodes
+    _         -> return HGNEmpty
 
 def :: LanguageDef st
 def = emptyDef { identStart = letter
@@ -120,24 +138,50 @@ definitionParser = try
        m_reservedOp "<-"
        m_reserved "P"
        return $ map (\nm -> createPrinterNodeGraph nm) nms)
+  <|> try
+    (do
+       nms <- m_commaSeq1 m_identifier
+       m_reservedOp "<-"
+       m_reserved "G"
+       file <- many1 (alphaNum <|> oneOf "._")
+       return $ map (\nm -> createNestedNodeGraph nm file) nms)
   where
     createScannerNodeGraph nm file = do
       s <- createScannerIO file
-      return (nm, emptyGraphNode { nodeFactory = Just (\_ -> HGNScanner s) })
+      return
+        ( nm
+        , emptyGraphNode { nodeFactory = Just (\_ -> return $ HGNScanner s) })
 
     createFilterNodeGraph nm file = do
       f <- loadFilterIO file
       return
         ( nm
         , emptyGraphNode { nodeFactory = Just
-                             (\ns -> HGNFilter $ HGFilter f ns)
+                             (\ns -> return $ HGNFilter $ HGFilter f ns)
                          })
 
     createPrinterNodeGraph nm = do
       return
         ( nm
         , emptyGraphNode { nodeFactory = Just
-                             (\(n:ns) -> HGNPrinter $ HGPrinter n)
+                             (\(n:ns) -> return $ HGNPrinter $ HGPrinter n)
+                         })
+
+    createNestedNodeGraph nm file = do
+      return
+        ( nm
+        , emptyGraphNode { nodeFactory = Just
+                             $ (\(ns) -> do
+                                  cs <- loadGraph file
+                                  graphNodes <- makeGraphIO cs
+                                  let graphNodesAddedInputNode = foldl (\acc (inum, n) ->
+                                       let gn = emptyGraphNode { nodeFactory = Just (\_ -> return n) }
+                                           nm = "i" ++ show inum
+                                       in M.insert nm gn acc) graphNodes (zip [0 ..] ns)
+                                  printer <- createNode "p0" graphNodesAddedInputNode
+                                  case printer of
+                                    HGNPrinter (HGPrinter node) -> return node
+                                    otherwise -> return HGNEmpty)
                          })
 
 graphParser :: Parser [IO (NodeName, GraphNode)]

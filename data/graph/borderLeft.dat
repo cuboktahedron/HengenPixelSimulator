@@ -1,0 +1,8 @@
+s1     <- S F.dat
+f1     <- G borderF.dat
+f2     <- F Left.dat
+p0     <- P
+
+s1     -> f1
+f1     -> f2
+f2     -> p0
