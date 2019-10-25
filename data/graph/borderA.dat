@@ -1,4 +1,4 @@
-s1 <- S F.dat
+s1 <- S A.dat
 f1 <- G border.dat
 p0 <- P
 

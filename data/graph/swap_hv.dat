@@ -1,8 +1,7 @@
-s1     <- S F.dat
 f1     <- F Swap_v.dat
 f2     <- F Swap_h.dat
 p0     <- P
 
-s1     -> f1
+i0     -> f1
 f1     -> f2
 f2     -> p0
