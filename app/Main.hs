@@ -13,6 +13,6 @@ main = do
     then return ()
     else do
       (Graph.execHengenPixel file)
-        `catch` (\(HengenPixelException err) -> print err)
+        `catch` (\(SomeException err) -> print err)
       putStrLn ""
       main
