@@ -29,7 +29,7 @@ author: cuboktahedron
 github: cuboktahedron/HengenPixel
 license: BSD3
 executables:
-  HengenPixel-exe:
+  HengenPixel:
     source-dirs: app
     main: Main.hs
     ghc-options:
